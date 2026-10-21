@@ -1,12 +1,17 @@
 from PySide6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindow, QLabel, QPushButton, QStackedLayout, QVBoxLayout, QWidget
 from PySide6.QtCore import QPropertyAnimation, Qt
 from PySide6 import QtGui
+import random
+from game import Agent, encode_board, DissapearingBoardEncoder
+import json
 
 class GameStartedWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.current_player = "O"
+        self.possible_players = ['O', 'X']
+
+        self.current_player = random.choice(self.possible_players)
         self.buttons = []
         self.board = [None] * 9
 
@@ -20,19 +25,22 @@ class GameStartedWindow(QMainWindow):
 
     def starting_widgets(self):
         # Add a label to indicate the game has started
-        self.starting_label = QLabel("Player O's turn")
-        self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
+        self.starting_label = QLabel(f"Player {self.current_player}'s turn")
+        if self.current_player == "O":
+            self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
+        else:
+            self.starting_label.setStyleSheet("color: red; font-size: 24px;")
         self.starting_label.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.starting_label)
 
         #Make the layout for the Tic-Tac-Toe board and buttons
         self.board_layout = QStackedLayout()
         self.board_layout.setStackingMode(QStackedLayout.StackingMode.StackAll)
-        self.layout.addLayout(self.board_layout) ##StackedLayout from "self.board" - Index 0
+        self.layout.addLayout(self.board_layout) #StackedLayout from "self.board" - Index 0
 
         #Add the Tic-Tac-Toe board image
         self.board_image = QLabel()
-        self.board_image.setPixmap(QtGui.QPixmap("./assets/tictactoe.png").scaled(600, 600))
+        self.board_image.setPixmap(QtGui.QPixmap("E:\\Dev\\Python\\tictactoe\\assets\\tictactoe.png").scaled(600, 600))
         self.board_image.setAlignment(Qt.AlignCenter)
         self.board_layout.addWidget(self.board_image)
 
@@ -90,10 +98,10 @@ class GameStartedWindow(QMainWindow):
 
         if self.current_player == "O":
             print("Player O clicked the button!")
-            button.setIcon(QtGui.QIcon("./assets/tictactoe_circle.png")) #Change to circle icon for player O
+            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_circle.png")) #Change to circle icon for player O
         else:
             print("Player X clicked the button!")
-            button.setIcon(QtGui.QIcon("./assets/tictactoe_x.png")) #Change to cross icon for player X
+            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_x.png")) #Change to cross icon for player X
 
         button.setIconSize(button.size())
 
@@ -160,7 +168,6 @@ class GameStartedWindow(QMainWindow):
 class DisappearingMode(GameStartedWindow):
     def __init__(self):
         super().__init__()
-
         self.player_O_button_tracker = []
         self.player_X_button_tracker = []
 
@@ -198,10 +205,10 @@ class DisappearingMode(GameStartedWindow):
 
         if self.current_player == "O":
             print("Player O clicked the button!")
-            button.setIcon(QtGui.QIcon("./assets/tictactoe_circle.png")) #Change to circle icon for player O
+            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_circle.png")) #Change to circle icon for player O
         else:
             print("Player X clicked the button!")
-            button.setIcon(QtGui.QIcon("./assets/tictactoe_x.png")) #Change to cross icon for player X
+            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_x.png")) #Change to cross icon for player X
 
         button.setIconSize(button.size())
 
@@ -223,6 +230,8 @@ class DisappearingMode(GameStartedWindow):
             self.starting_label.setText("Player O's turn")
             self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
 
+        print("Current Board State:", self.board)
+
     def play_again(self):
         # Reset the game board and player turns
         super().play_again()
@@ -231,9 +240,88 @@ class DisappearingMode(GameStartedWindow):
 
 
 class ClassicVsAI(GameStartedWindow):
-    #For future AI implementation using own neural network
-    pass
+    def __init__(self):
+        super().__init__()
+        self.agent = Agent()
+        self.agent.load_weights("tictactoe/weights for classic/latest_weights.json", "tictactoe/weights for classic/latest_O_weights.json")
+        #self.agent.load_weights("tictactoe/weights for classic/latest_O_weights.json", "tictactoe/weights for classic/latest_weights.json")
+        self.current_player = "O"
+        self.starting_label.setText("Player O's turn")
+        self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
 
-class DisappearingVsAI(GameStartedWindow):
-    #For future AI implementation using own neural network
-    pass
+    def button_clicked(self):
+        super().button_clicked()
+        if self.current_player == "X":
+            choice = self.choose_move(self.board, self.current_player)
+            self.buttons[choice].click()
+
+        print("Current Board State:", self.board)
+
+    def choose_move(self, board, mover):
+                # Get the list of legal moves available for the current player
+        available_moves = self.legal_moves()
+        state = encode_board(board, mover)
+
+        #Check if AI should explore
+        """if random.random() < self.epsilon:
+            return random.choice(available_moves)"""
+
+        move_scores = self.agent.net.forward(state, mover)
+
+        #Check for highest value move inside "available_moves"
+        hvm = max(move_scores[i] for i in available_moves)
+        #Check for highest value move index/indeces inside "available_moves"
+        best_move_indices = [move_index for move_index in available_moves if move_scores[move_index] == hvm]
+
+        return random.choice(best_move_indices)
+
+    def legal_moves(self):
+        legal_moves = [i for i, square in enumerate(self.board) if square is None]
+        return legal_moves
+
+class DisappearingVsAI(DisappearingMode, ClassicVsAI):
+    def __init__(self):
+        super().__init__()
+        self.agent = Agent()
+        self.agent.load_weights("tictactoe/weights for disappearing/latest_dissapearing_weights.json", "tictactoe/weights for disappearing/latest_O_dissapearing_weights.json")
+        self.current_player = "O"
+        self.starting_label.setText("Player O's turn")
+        self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
+
+    def button_clicked(self):
+        super().button_clicked()
+        if self.current_player == "X":
+            choice = self.choose_move(self.current_player)
+            self.buttons[choice].click()
+
+    def choose_move(self, mover):
+        available_moves = self.legal_moves()
+        state = [0] * 9
+
+        own_tracker = (self.player_O_button_tracker if mover == "O" else self.player_X_button_tracker)
+
+        opponent_tracker = (self.player_X_button_tracker if mover == "O" else self.player_O_button_tracker)
+
+        for i, button in enumerate(own_tracker):
+            square = self.buttons.index(button)
+            state[square] = 4 - len(own_tracker) + i
+
+        for i, button in enumerate(opponent_tracker):
+            square = self.buttons.index(button)
+            state[square] = -(4 - len(opponent_tracker) + i)
+
+        state = tuple(state)
+        print(mover, state)
+
+        move_scores = self.agent.net.forward(state, mover)
+
+        highest_score = max( move_scores[square] for square in available_moves)
+
+        best_moves = [ square for square in available_moves if move_scores[square] == highest_score]
+
+        return random.choice(best_moves)
+
+    def legal_moves(self):
+        return super().legal_moves()
+
+    

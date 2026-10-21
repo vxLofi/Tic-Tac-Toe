@@ -62,6 +62,10 @@ class MainWindow(QMainWindow):
 
     #Disappearing mode button
        self.selection_page.disappearing_button.clicked.connect(lambda: self.stacked_windows.setCurrentWidget(self.disappearing_mode))
+
+    #Play against AI buttons
+       self.selection_page.ai_button.clicked.connect(lambda: self.stacked_windows.setCurrentWidget(self.classic_vs_AI))
+       self.selection_page.disappearing_ai_button.clicked.connect(lambda: self.stacked_windows.setCurrentWidget(self.disappearing_vs_AI))
     
     def select_game(self):
       self.stacked_windows.setCurrentWidget(self.selection_page)
