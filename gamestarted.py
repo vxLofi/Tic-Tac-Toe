@@ -2,8 +2,18 @@ from PySide6.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QMainWindo
 from PySide6.QtCore import QPropertyAnimation, Qt
 from PySide6 import QtGui
 import random
-from game import Agent, encode_board, DissapearingBoardEncoder
-import json
+from pathlib import Path
+import game as ai
+from game import Agent, encode_board
+
+def pick_random_file(folder_path):
+    path = Path(folder_path)
+
+    files = [f for f in path.iterdir() if f.is_file() and f.suffix == ".json"]
+    chosen = random.choice(files)
+    print(chosen)
+
+    return chosen
 
 class GameStartedWindow(QMainWindow):
     def __init__(self):
@@ -40,7 +50,7 @@ class GameStartedWindow(QMainWindow):
 
         #Add the Tic-Tac-Toe board image
         self.board_image = QLabel()
-        self.board_image.setPixmap(QtGui.QPixmap("E:\\Dev\\Python\\tictactoe\\assets\\tictactoe.png").scaled(600, 600))
+        self.board_image.setPixmap(QtGui.QPixmap(str(Path(__file__).parent / "assets" / "tictactoe.png")).scaled(600, 600))
         self.board_image.setAlignment(Qt.AlignCenter)
         self.board_layout.addWidget(self.board_image)
 
@@ -98,10 +108,10 @@ class GameStartedWindow(QMainWindow):
 
         if self.current_player == "O":
             print("Player O clicked the button!")
-            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_circle.png")) #Change to circle icon for player O
+            button.setIcon(QtGui.QIcon(str(Path(__file__).parent / "assets" / "tictactoe_circle.png"))) #Change to circle icon for player O
         else:
             print("Player X clicked the button!")
-            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_x.png")) #Change to cross icon for player X
+            button.setIcon(QtGui.QIcon(str(Path(__file__).parent / "assets" / "tictactoe_x.png"))) #Change to cross icon for player X
 
         button.setIconSize(button.size())
 
@@ -170,6 +180,8 @@ class DisappearingMode(GameStartedWindow):
         super().__init__()
         self.player_O_button_tracker = []
         self.player_X_button_tracker = []
+        self.X_tracker = []
+        self.O_tracker = []
 
     def button_clicked(self):
         button = self.sender()
@@ -181,8 +193,10 @@ class DisappearingMode(GameStartedWindow):
 
         if self.current_player == "O":
             self.player_O_button_tracker.append(button)
+            self.O_tracker.append(self.buttons.index(button))
         else:
             self.player_X_button_tracker.append(button)
+            self.X_tracker.append(self.buttons.index(button))
 
         current_button_index = self.buttons.index(button)
         self.board[current_button_index] = self.current_player
@@ -205,10 +219,10 @@ class DisappearingMode(GameStartedWindow):
 
         if self.current_player == "O":
             print("Player O clicked the button!")
-            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_circle.png")) #Change to circle icon for player O
+            button.setIcon(QtGui.QIcon(str(Path(__file__).parent / "assets" / "tictactoe_circle.png"))) #Change to circle icon for player O
         else:
             print("Player X clicked the button!")
-            button.setIcon(QtGui.QIcon("tictactoe/assets/tictactoe_x.png")) #Change to cross icon for player X
+            button.setIcon(QtGui.QIcon(str(Path(__file__).parent / "assets" / "tictactoe_x.png"))) #Change to cross icon for player X
 
         button.setIconSize(button.size())
 
@@ -243,8 +257,9 @@ class ClassicVsAI(GameStartedWindow):
     def __init__(self):
         super().__init__()
         self.agent = Agent()
-        self.agent.load_weights("tictactoe/weights for classic/latest_weights.json", "tictactoe/weights for classic/latest_O_weights.json")
+        #self.agent.load_weights(str(Path(__file__).parent / "weights for classic" / "latest_weights.json"), str(Path(__file__).parent / "weights for classic" / "latest_O_weights.json"))
         #self.agent.load_weights("tictactoe/weights for classic/latest_O_weights.json", "tictactoe/weights for classic/latest_weights.json")
+        self.agent.load_weights(pick_random_file("tictactoe/weights for classic"))
         self.current_player = "O"
         self.starting_label.setText("Player O's turn")
         self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
@@ -262,11 +277,7 @@ class ClassicVsAI(GameStartedWindow):
         available_moves = self.legal_moves()
         state = encode_board(board, mover)
 
-        #Check if AI should explore
-        """if random.random() < self.epsilon:
-            return random.choice(available_moves)"""
-
-        move_scores = self.agent.net.forward(state, mover)
+        move_scores = self.agent.net.forward(state)
 
         #Check for highest value move inside "available_moves"
         hvm = max(move_scores[i] for i in available_moves)
@@ -279,12 +290,18 @@ class ClassicVsAI(GameStartedWindow):
         legal_moves = [i for i, square in enumerate(self.board) if square is None]
         return legal_moves
 
+    def play_again(self):
+        super().play_again()
+        self.agent.load_weights(pick_random_file("tictactoe/weights for classic"))
+
 class DisappearingVsAI(DisappearingMode, ClassicVsAI):
     def __init__(self):
         super().__init__()
+        ai.game_mode = 2
         self.agent = Agent()
-        self.agent.load_weights("tictactoe/weights for disappearing/latest_dissapearing_weights.json", "tictactoe/weights for disappearing/latest_O_dissapearing_weights.json")
+        #self.agent.load_weights(str(Path(__file__).parent / "weights for disappearing" / "latest_dissapearing_weights.json"), str(Path(__file__).parent / "weights for disappearing" / "latest_O_dissapearing_weights.json"))
         self.current_player = "O"
+        self.agent.load_weights(pick_random_file("tictactoe/weights for disappearing"))
         self.starting_label.setText("Player O's turn")
         self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
 
@@ -313,7 +330,7 @@ class DisappearingVsAI(DisappearingMode, ClassicVsAI):
         state = tuple(state)
         print(mover, state)
 
-        move_scores = self.agent.net.forward(state, mover)
+        move_scores = self.agent.net.forward(state)
 
         highest_score = max( move_scores[square] for square in available_moves)
 
@@ -323,5 +340,27 @@ class DisappearingVsAI(DisappearingMode, ClassicVsAI):
 
     def legal_moves(self):
         return super().legal_moves()
+
+    def play_again(self):
+        self.current_player = "O"
+        self.starting_label.setText("Player O's turn")
+        self.starting_label.setStyleSheet("color: #00BFFF; font-size: 24px;")
+
+        for button in self.buttons:
+            button.setIcon(QtGui.QIcon())
+            button.setProperty("Enabled", True)
+            button.setStyleSheet("""
+                                    QPushButton {
+                                        background-color: transparent;
+                                        border: none;
+                                    }
+            
+                                    QPushButton:hover {
+                                        background-color: rgba(255, 255, 255, 50);
+                                    }
+                                """)
+
+        self.board = [None] * 9
+        self.agent.load_weights(pick_random_file("tictactoe/weights for disappearing"))
 
     
