@@ -21,7 +21,7 @@ In classic mode, a full board without a winner ends in a draw. In disappearing m
 - A menu for choosing game modes.
 - An in-app guide explaining how to play.
 - Local two-player gameplay.
-- AI opponents trained through reinforcement learning and self-play.
+- AI opponents trained through reinforcement learning and self-play for both classic and disappearing game modes.
 - Saved model weights for loading trained agents.
 
 ## About the AI
@@ -70,12 +70,15 @@ Keep the project's images, weight files, and other supporting files in their ori
 - Training agents through self-play.
 - How reward design and state representation affect learning.
 - Why strong training results do not always mean an agent handles every situation well.
+- How train AI agents as a population.
+- MinMax game trees
 
-## Possible improvements
+## Possible improvements/features
 
-- Improve the AI's consistency when blocking immediate wins.
-- Evaluate trained agents against a wider range of opponents and board positions.
-- Experiment with minimax-based feedback to help the agents identify better and worse moves during training.
+- Improve AIs vision to get immediate wins.
+- Make a MinMax teacher for disappearing Tic-Tac-Toe.
+- Explain other game modes inside "How To Play" page.
+- Clean some redudant duplicated code and stick more to the DRY principal.
 
 ## Author
 

@@ -23,6 +23,10 @@ class SelectionPageWindow(QMainWindow):
         self.disappearing_button.setStyleSheet("font-size: 24px;")
         selection_page_layout.addWidget(self.disappearing_button)
 
-        self.ai_button = QPushButton("Play against AI")
+        self.ai_button = QPushButton("Play against AI - Classic")
         self.ai_button.setStyleSheet("font-size: 24px;")
         selection_page_layout.addWidget(self.ai_button)
+
+        self.disappearing_ai_button = QPushButton("Play against AI - Disappearing")
+        self.disappearing_ai_button.setStyleSheet("font-size: 24px;")
+        selection_page_layout.addWidget(self.disappearing_ai_button)
